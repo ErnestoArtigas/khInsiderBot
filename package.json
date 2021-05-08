@@ -1,0 +1,16 @@
+{
+  "name": "khinsiderbot",
+  "version": "1.0.0",
+  "description": "Simple Node application for mass downloading KH Insider.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "LodocArt",
+  "license": "GNU General Public License v3.0",
+  "dependencies": {
+    "node-downloader-helper": "^1.0.18",
+    "puppeteer": "^9.1.0"
+  }
+}
