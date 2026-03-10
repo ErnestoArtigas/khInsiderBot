@@ -12,6 +12,7 @@ from urllib.parse import unquote
 
 import aiofiles
 import httpx
+from rich.console import Group
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -59,6 +60,8 @@ def parallel_download_files(links: list[str], path: str) -> None:
         links[i : i + size_chunks] for i in range(0, len(links), size_chunks)
     ]
 
+    group = Group
+
     futures = []
 
     with rich_console.status(
@@ -92,7 +95,7 @@ async def download_files(
     links: list[str], path: str, client: httpx.AsyncClient
 ) -> None:
     progress_bar = Progress(
-        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
+        TextColumn(text_format="[bold blue]{task.fields[filename]}", justify="right"),
         BarColumn(bar_width=None),
         "[progress.percentage]{task.percentage:>3.1f}%",
         "•",
