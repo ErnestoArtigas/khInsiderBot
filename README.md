@@ -1,5 +1,9 @@
 # KH Insider Bot
 
+## Archival
+
+This project was meant to be a way for me to test parallelism and web scrapping, while advising people to donate to the website. As the website is now using Cloudflare, I don't want to contribute to this project anymore.
+
 ## Description
 
 The project is a simple downloader written in Python. You need to provide a link and a format when using the command and it will donwload in the current directory. If the album folder already exists it won't overwrite it and just raise an error. If the format you entered isn't available it will list to you availables format before exiting the program.
