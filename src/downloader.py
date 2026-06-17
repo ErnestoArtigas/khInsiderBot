@@ -12,6 +12,8 @@ from urllib.parse import unquote
 
 import aiofiles
 import httpx
+from rich.live import Live
+from rich.panel import Panel
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -20,6 +22,7 @@ from rich.progress import (
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
+from rich.table import Table
 
 from core.dependencies import rich_console
 
@@ -65,31 +68,37 @@ def parallel_download_files(links: list[str], path: str) -> None:
         status=f"[bold cyan]Using {len(links_chunked)} cores to download {len(links)} tracks..."
     ) as _:
         # Running as much workers as chunks in the array (lower or equal to cpu_count).
+        progress_table = Table.grid()
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=len(links_chunked)
         ) as executor:
             for i in range(len(links_chunked)):
                 futures.append(
                     executor.submit(
-                        process_download_files,
-                        links_chunked[i],
-                        path,
+                        process_download_files, links_chunked[i], path, progress_table
                     )
                 )
 
-        concurrent.futures.wait(futures)
+        with Live(progress_table, refresh_per_second=10):
+            concurrent.futures.wait(futures)
 
 
-def process_download_files(links: list[str], path: str) -> None:
-    async def async_download_files(links: list[str], path: str) -> None:
+def process_download_files(links: list[str], path: str, progress_table: Table) -> None:
+    async def async_download_files(
+        links: list[str], path: str, progress_table: Table
+    ) -> None:
         async with httpx.AsyncClient() as client:
-            await download_files(links=links, path=path, client=client)
+            await download_files(
+                links=links, path=path, client=client, progress_table=progress_table
+            )
 
-    asyncio.run(main=async_download_files(links=links, path=path))
+    asyncio.run(
+        main=async_download_files(links=links, path=path, progress_table=progress_table)
+    )
 
 
 async def download_files(
-    links: list[str], path: str, client: httpx.AsyncClient
+    links: list[str], path: str, client: httpx.AsyncClient, progress_table: Table
 ) -> None:
     progress_bar = Progress(
         TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
@@ -102,19 +111,19 @@ async def download_files(
         "•",
         TimeRemainingColumn(),
     )
+    progress_table.add_row(Panel.fit(progress_bar))
 
     for link in links:
         file_name = extract_decode_filename(url=link)
         async with aiofiles.open(file=os.path.join(path, file_name), mode="wb") as file:
             async with client.stream(method="GET", url=link) as response:
-                with progress_bar:
-                    download_task = progress_bar.add_task(
-                        f"Download {file_name}",
-                        total=int(
-                            response.headers["Content-Length"],
-                        ),
-                        filename=file_name,
-                    )
-                    async for chunk in response.aiter_bytes():
-                        await file.write(chunk)
-                        progress_bar.update(download_task, advance=len(chunk))
+                download_task = progress_bar.add_task(
+                    f"Download {file_name}",
+                    total=int(
+                        response.headers["Content-Length"],
+                    ),
+                    filename=file_name,
+                )
+                async for chunk in response.aiter_bytes():
+                    await file.write(chunk)
+                    progress_bar.update(download_task, advance=len(chunk))
